@@ -1,0 +1,3 @@
+[submodule "NoctLang"]
+	path = NoctLang
+	url = https://github.com/awemorris/NoctLang.git
