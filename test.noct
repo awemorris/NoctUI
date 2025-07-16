@@ -1,9 +1,3 @@
-NoctUI
-======
-
-This is a demonstration of a GTK4 Declaretive UI with Noct language.
-
-```
 func main() {
      UIRun(
          // Title
@@ -26,6 +20,3 @@ func main() {
 	 ])
      );
 }
-```
-
-![screenshot.png](screenshot.png)
