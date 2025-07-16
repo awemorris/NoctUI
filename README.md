@@ -15,7 +15,7 @@ func main() {
          // Declarative UI
          VBox([
 		Label({
-		    title: "Hello, GNU-style Declative UI!"
+		    title: "Hello, GNU-style Declarative UI!"
 		}),
 		Button({
 		    title: "Push Here",
