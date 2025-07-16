@@ -7,6 +7,9 @@ static struct rt_value global_dict;
 static int global_argc;
 static char **global_argv;
 static GtkWidget *global_window;
+static char *global_title;
+static int global_width;
+static int global_height;
 
 /* Forward declaration. */
 static bool load_file_content(const char *fname, char **data, size_t *size);
@@ -168,14 +171,17 @@ cfunc_UIRun(
 	/* Get the "title" parameer. */
 	if (!rt_get_string_arg(rt, 0, &title))
 		return false;
+	global_title = strdup(title);
 
 	/* Get the "width" parameter. */
 	if (!rt_get_int_arg(rt, 1, &width))
 		return false;
+	global_width = width;
 
 	/* Get the "height" parameter. */
 	if (!rt_get_int_arg(rt, 2, &height))
 		return false;
+	global_height = height;
 
 	/* Get the "dict" parameter. */
 	if (!rt_get_dict_arg(rt, 3, &dict))
@@ -315,8 +321,8 @@ static void activate(GtkApplication *app, gpointer user_data)
 	dict = global_dict;
 
 	GtkWidget *window = gtk_application_window_new(app);
-	gtk_window_set_title(GTK_WINDOW(window), "Hello");
-	gtk_window_set_default_size(GTK_WINDOW(window), 400, 200);
+	gtk_window_set_title(GTK_WINDOW(window), global_title);
+	gtk_window_set_default_size(GTK_WINDOW(window), global_width, global_height);
 	gtk_widget_set_visible(window, true);
 
 	global_window = window;
