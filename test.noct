@@ -6,7 +6,7 @@ func main() {
          // Window Size
 	 640, 480,
 
-         // Declaretive UI
+         // Declarative UI
          VBox([
 		Label({
 		    title: "Hello, GNU-style Declative UI!"

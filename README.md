@@ -1,7 +1,7 @@
 NoctUI
 ======
 
-This is a demonstration of a GTK4 Declaretive UI with Noct language.
+This is a demonstration of a GTK4 Declarative UI with Noct language.
 
 ```
 func main() {
@@ -12,7 +12,7 @@ func main() {
          // Window Size
 	 640, 480,
 
-         // Declaretive UI
+         // Declarative UI
          VBox([
 		Label({
 		    title: "Hello, GNU-style Declative UI!"
