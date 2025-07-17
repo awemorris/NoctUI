@@ -11,13 +11,13 @@ pkg_check_modules(GTK4 REQUIRED gtk4)
 set(USE_TRANSLATION OFF CACHE BOOL "Disable translation" FORCE)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/NoctLang)
 
-# Source Files
-set(NOCTVM_SOURCES
+# Library source files.
+set(SOURCES
   src/main.c
 )
 
-# Add NoctUI binary.
-add_executable(noctui ${NOCTVM_SOURCES})
+# Add NoctUI library.
+add_executable(noctui ${SOURCES})
 
 # GTK4
 target_include_directories(noctui PRIVATE ${GTK4_INCLUDE_DIRS})

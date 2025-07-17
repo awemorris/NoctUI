@@ -1,9 +1,8 @@
+#include <noct/noct.h>
 #include <gtk/gtk.h>
 
-#include <noctlang/runtime.h>
-
-static struct rt_env *global_rt;
-static struct rt_value global_dict;
+static NoctEnv *global_rt;
+static NoctValue global_dict;
 static int global_argc;
 static char **global_argv;
 static GtkWidget *global_window;
@@ -13,25 +12,25 @@ static int global_height;
 
 /* Forward declaration. */
 static bool load_file_content(const char *fname, char **data, size_t *size);
-static bool register_ffi(struct rt_env *rt);
+static bool register_ffi(NoctEnv *rt);
 static void activate(GtkApplication *app, gpointer user_data);
-static bool cfunc_UIRun(struct rt_env *rt);
-static bool cfunc_VBox(struct rt_env *rt);
-static bool cfunc_Label(struct rt_env *rt);
-static bool cfunc_Button(struct rt_env *rt);
-static bool cfunc_print(struct rt_env *rt);
-static bool add_ui_element(struct rt_env *rt, struct rt_value *dict, GtkWidget *parent);
-static bool add_vbox_element(struct rt_env *rt, struct rt_value *dict, GtkWidget *parent);
-static bool add_label_element(struct rt_env *rt, struct rt_value *dict, GtkWidget *parent);
-static bool add_button_element(struct rt_env *rt, struct rt_value *dict, GtkWidget *parent);
+static bool cfunc_UIRun(NoctEnv *rt);
+static bool cfunc_VBox(NoctEnv *rt);
+static bool cfunc_Label(NoctEnv *rt);
+static bool cfunc_Button(NoctEnv *rt);
+static bool cfunc_print(NoctEnv *rt);
+static bool add_ui_element(NoctEnv *rt, NoctValue *dict, GtkWidget *parent);
+static bool add_vbox_element(NoctEnv *rt, NoctValue *dict, GtkWidget *parent);
+static bool add_label_element(NoctEnv *rt, NoctValue *dict, GtkWidget *parent);
+static bool add_button_element(NoctEnv *rt, NoctValue *dict, GtkWidget *parent);
 static void on_button_clicked(GtkButton *button, void *func);
 
 /* FFI registration table. */
 struct ffi_item {
 	const char *name;
 	int param_count;
-	const char *param[RT_ARG_MAX];
-	bool (*cfunc)(struct rt_env *rt);
+	const char *param[NOCT_ARG_MAX];
+	bool (*cfunc)(NoctEnv *rt);
 } ffi_items[] = {
 	{"UIRun", 4, {"title", "width", "height", "dict"}, cfunc_UIRun},
 	{"VBox", 1, {"array"}, cfunc_VBox},
@@ -47,8 +46,8 @@ int main(int argc, char *argv[])
 {
 	char *file_data;
 	size_t file_size;
-	struct rt_env *rt;
-	struct rt_value ret;
+	NoctEnv *rt;
+	NoctValue ret;
 
 	global_argc = argc;
 	global_argv = argv;
@@ -67,7 +66,7 @@ int main(int argc, char *argv[])
 		return 1;
 
 	/* Create a runtime. */
-	if (!rt_create(&rt))
+	if (!noct_create(&rt))
 		return 1;
 	global_rt = rt;
 
@@ -76,25 +75,25 @@ int main(int argc, char *argv[])
 		return 1;
 
 	/* Compile the source code. */
-	if (!rt_register_source(rt, argv[1], file_data)) {
+	if (!noct_register_source(rt, argv[1], file_data)) {
 		printf("%s:%d: error: %s\n",
-		       rt_get_error_file(rt),
-		       rt_get_error_line(rt),
-		       rt_get_error_message(rt));
+		       noct_get_error_file(rt),
+		       noct_get_error_line(rt),
+		       noct_get_error_message(rt));
 		return 1;
 	}
 
 	/* Run the "main()" function. */
-	if (!rt_call_with_name(rt, "main", NULL, 0, NULL, &ret)) {
+	if (!noct_call_with_name(rt, "main", NULL, 0, NULL, &ret)) {
 		printf("%s:%d: error: %s\n",
-		       rt_get_error_file(rt),
-		       rt_get_error_line(rt),
-		       rt_get_error_message(rt));
+		       noct_get_error_file(rt),
+		       noct_get_error_line(rt),
+		       noct_get_error_message(rt));
 		return 1;
 	}
 	
 	/* Destroy the runtime. */
-	if (!rt_destroy(rt))
+	if (!noct_destroy(rt))
 		return 1;
 
 	return 0;
@@ -140,12 +139,12 @@ static bool load_file_content(const char *fname, char **data, size_t *size)
 }
 
 /* Register FFI functions. */
-static bool register_ffi(struct rt_env *rt)
+static bool register_ffi(NoctEnv *rt)
 {
 	int i;
 
 	for (i = 0; i < (int)(sizeof(ffi_items) / sizeof(struct ffi_item)); i++) {
-		if (!rt_register_cfunc(rt,
+		if (!noct_register_cfunc(rt,
 				       ffi_items[i].name,
 				       ffi_items[i].param_count,
 				       ffi_items[i].param,
@@ -160,31 +159,31 @@ static bool register_ffi(struct rt_env *rt)
 /* Implementation of UIRun(). */
 static bool
 cfunc_UIRun(
-	struct rt_env *rt)
+	NoctEnv *rt)
 {
 	const char *title;
 	int width;
 	int height;
-	struct rt_value dict;
+	NoctValue dict;
 	GtkApplication *app;
 
 	/* Get the "title" parameer. */
-	if (!rt_get_string_arg(rt, 0, &title))
+	if (!noct_get_arg_string(rt, 0, &title))
 		return false;
 	global_title = strdup(title);
 
 	/* Get the "width" parameter. */
-	if (!rt_get_int_arg(rt, 1, &width))
+	if (!noct_get_arg_int(rt, 1, &width))
 		return false;
 	global_width = width;
 
 	/* Get the "height" parameter. */
-	if (!rt_get_int_arg(rt, 2, &height))
+	if (!noct_get_arg_int(rt, 2, &height))
 		return false;
 	global_height = height;
 
 	/* Get the "dict" parameter. */
-	if (!rt_get_dict_arg(rt, 3, &dict))
+	if (!noct_get_arg_dict(rt, 3, &dict))
 		return false;
 	global_dict = dict;
 
@@ -202,23 +201,23 @@ cfunc_UIRun(
 /* Implementation of VBox() */
 static bool
 cfunc_VBox(
-	struct rt_env *rt)
+	NoctEnv *rt)
 {
-	struct rt_value array;
-	struct rt_value ret;
+	NoctValue array;
+	NoctValue ret;
 
 	/* Get the "array" argument. */
-	if (!rt_get_array_arg(rt, 0, &array))
+	if (!noct_get_arg_array(rt, 0, &array))
 		return false;
 
 	/* Return a dictionary. */
-	if (!rt_make_empty_dict(rt, &ret))
+	if (!noct_make_empty_dict(rt, &ret))
 		return false;
-	if (!rt_set_string_dict_elem(rt, &ret, "type", "VBox"))
+	if (!noct_set_dict_elem_string(rt, &ret, "type", "VBox"))
 		return false;
-	if (!rt_set_dict_elem(rt, &ret, "array", &array))
+	if (!noct_set_dict_elem(rt, &ret, "array", &array))
 		return false;
-	if (!rt_set_return(rt, &ret))
+	if (!noct_set_return(rt, &ret))
 		return false;
 
 	return true;
@@ -227,21 +226,21 @@ cfunc_VBox(
 /* Implementation of Label() */
 static bool
 cfunc_Label(
-	struct rt_env *rt)
+	NoctEnv *rt)
 {
-	struct rt_value dict;
-	struct rt_value ret;
+	NoctValue dict;
+	NoctValue ret;
 
 	/* Get the dict argument. */
-	if (!rt_get_dict_arg(rt, 0, &dict))
+	if (!noct_get_arg_dict(rt, 0, &dict))
 		return false;
 
 	/* Return a dictionary. */
-	if (!rt_copy_dict(rt, &dict, &ret))
+	if (!noct_make_dict_copy(rt, &dict, &ret))
 		return false;
-	if (!rt_set_string_dict_elem(rt, &ret, "type", "Label"))
+	if (!noct_set_dict_elem_string(rt, &ret, "type", "Label"))
 		return false;
-	if (!rt_set_return(rt, &ret))
+	if (!noct_set_return(rt, &ret))
 		return false;
 
 	return true;
@@ -250,21 +249,21 @@ cfunc_Label(
 /* Implementation of Button() */
 static bool
 cfunc_Button(
-	struct rt_env *rt)
+	NoctEnv *rt)
 {
-	struct rt_value dict;
-	struct rt_value ret;
+	NoctValue dict;
+	NoctValue ret;
 
 	/* Get the dict argument. */
-	if (!rt_get_dict_arg(rt, 0, &dict))
+	if (!noct_get_arg_dict(rt, 0, &dict))
 		return false;
 
 	/* Return a dictionary. */
-	if (!rt_copy_dict(rt, &dict, &ret))
+	if (!noct_make_dict_copy(rt, &dict, &ret))
 		return false;
-	if (!rt_set_string_dict_elem(rt, &ret, "type", "Button"))
+	if (!noct_set_dict_elem_string(rt, &ret, "type", "Button"))
 		return false;
-	if (!rt_set_return(rt, &ret))
+	if (!noct_set_return(rt, &ret))
 		return false;
 
 	return true;
@@ -273,33 +272,33 @@ cfunc_Button(
 /* Implementation of print() */
 static bool
 cfunc_print(
-	struct rt_env *rt)
+	NoctEnv *rt)
 {
-	struct rt_value msg;
+	NoctValue msg;
 	const char *s;
 	float f;
 	int i;
 	int type;
 
-	if (!rt_get_arg(rt, 0, &msg))
+	if (!noct_get_arg(rt, 0, &msg))
 		return false;
 
-	if (!rt_get_value_type(rt, &msg, &type))
+	if (!noct_get_value_type(rt, &msg, &type))
 		return false;
 
 	switch (type) {
-	case RT_VALUE_INT:
-		if (!rt_get_int(rt, &msg, &i))
+	case NOCT_VALUE_INT:
+		if (!noct_get_int(rt, &msg, &i))
 			return false;
 		printf("%i\n", i);
 		break;
-	case RT_VALUE_FLOAT:
-		if (!rt_get_float(rt, &msg, &f))
+	case NOCT_VALUE_FLOAT:
+		if (!noct_get_float(rt, &msg, &f))
 			return false;
 		printf("%f\n", f);
 		break;
-	case RT_VALUE_STRING:
-		if (!rt_get_string(rt, &msg, &s))
+	case NOCT_VALUE_STRING:
+		if (!noct_get_string(rt, &msg, &s))
 			return false;
 		printf("%s\n", s);
 		break;
@@ -314,8 +313,8 @@ cfunc_print(
 /* Signal "activate". */
 static void activate(GtkApplication *app, gpointer user_data)
 {
-	struct rt_env *rt;
-	struct rt_value dict;
+	NoctEnv *rt;
+	NoctValue dict;
 
 	rt = global_rt;
 	dict = global_dict;
@@ -332,12 +331,12 @@ static void activate(GtkApplication *app, gpointer user_data)
 }
 
 /* Add a UI element. */
-static bool add_ui_element(struct rt_env *rt, struct rt_value *dict, GtkWidget *parent)
+static bool add_ui_element(NoctEnv *rt, NoctValue *dict, GtkWidget *parent)
 {
 	const char *type;
-	struct rt_value prop_type;
+	NoctValue prop_type;
 
-	if (!rt_get_string_dict_elem(rt, dict, "type", &type))
+	if (!noct_get_dict_elem_string(rt, dict, "type", &type))
 		return false;
 	if (strcmp(type, "VBox") == 0) {
 		if (!add_vbox_element(rt, dict, parent))
@@ -349,7 +348,7 @@ static bool add_ui_element(struct rt_env *rt, struct rt_value *dict, GtkWidget *
 		if (!add_button_element(rt, dict, parent))
 			return false;
 	} else {
-		rt_error(rt, "Non supported item.");
+		noct_error(rt, "Non supported item.");
 		return false;
 	}
 
@@ -357,9 +356,9 @@ static bool add_ui_element(struct rt_env *rt, struct rt_value *dict, GtkWidget *
 }
 
 /* Add a VBox element. */
-static bool add_vbox_element(struct rt_env *rt, struct rt_value *dict, GtkWidget *parent)
+static bool add_vbox_element(NoctEnv *rt, NoctValue *dict, GtkWidget *parent)
 {
-	struct rt_value array;
+	NoctValue array;
 	int size, i;
 
 	GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
@@ -368,14 +367,14 @@ static bool add_vbox_element(struct rt_env *rt, struct rt_value *dict, GtkWidget
 	else
 		gtk_box_append(GTK_BOX(parent), vbox);
 
-	if (!rt_get_array_dict_elem(rt, dict, "array", &array))
+	if (!noct_get_dict_elem_array(rt, dict, "array", &array))
 		return false;
-	if (!rt_get_array_size(rt, &array, &size))
+	if (!noct_get_array_size(rt, &array, &size))
 		return false;
 	for (i = 0; i < size; i++) {
-		struct rt_value dict;
+		NoctValue dict;
 
-		if (!rt_get_dict_array_elem(rt, &array, i, &dict))
+		if (!noct_get_array_elem_dict(rt, &array, i, &dict))
 			return false;
 		if (!add_ui_element(rt, &dict, vbox))
 			return false;
@@ -385,11 +384,11 @@ static bool add_vbox_element(struct rt_env *rt, struct rt_value *dict, GtkWidget
 }
 
 /* Add a Label element. */
-static bool add_label_element(struct rt_env *rt, struct rt_value *dict, GtkWidget *parent)
+static bool add_label_element(NoctEnv *rt, NoctValue *dict, GtkWidget *parent)
 {
 	const char *title;
 
-	if (!rt_get_string_dict_elem(rt, dict, "title", &title))
+	if (!noct_get_dict_elem_string(rt, dict, "title", &title))
 		return false;
 
 	GtkWidget *label = gtk_label_new(title);
@@ -402,14 +401,14 @@ static bool add_label_element(struct rt_env *rt, struct rt_value *dict, GtkWidge
 }
 
 /* Add a Button element. */
-static bool add_button_element(struct rt_env *rt, struct rt_value *dict, GtkWidget *parent)
+static bool add_button_element(NoctEnv *rt, NoctValue *dict, GtkWidget *parent)
 {
 	const char *title;
-	struct rt_func *func;
+	NoctFunc *func;
 
-	if (!rt_get_string_dict_elem(rt, dict, "title", &title))
+	if (!noct_get_dict_elem_string(rt, dict, "title", &title))
 		return false;
-	if (!rt_get_func_dict_elem(rt, dict, "onClick", &func))
+	if (!noct_get_dict_elem_func(rt, dict, "onClick", &func))
 		return false;
 
 	GtkWidget *button = gtk_button_new_with_label(title);
@@ -426,11 +425,11 @@ static bool add_button_element(struct rt_env *rt, struct rt_value *dict, GtkWidg
 /* Signal: "clicked" */
 static void on_button_clicked(GtkButton *button, void *func)
 {
-	struct rt_func *f;
-	struct rt_value ret;
+	NoctFunc *f;
+	NoctValue ret;
 
-	f = (struct rt_func *)func;
+	f = (NoctFunc *)func;
 
 	/* Call a function. */
-	rt_call(global_rt, f, NULL, 0, NULL, &ret);
+	noct_call(global_rt, f, NULL, 0, NULL, &ret);
 }
